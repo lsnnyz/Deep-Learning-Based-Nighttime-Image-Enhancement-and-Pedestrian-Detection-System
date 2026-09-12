@@ -1,0 +1,7 @@
+# YOLOv8 数据集配置文件
+path: ../datasets/LLVIP  # 加上 ../，让 YOLO 从 scripts 的上一级去找 datasets
+train: images/train
+val: images/val
+
+names:
+  0: person

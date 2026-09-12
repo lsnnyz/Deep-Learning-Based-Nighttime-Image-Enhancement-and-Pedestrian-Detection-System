@@ -1,0 +1,28 @@
+# IDE
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Dataset
+data/
+LLVIPdata/
+*.rar
+*.zip
+
+# Training outputs
+runs/
+test_results/
+outputs/
+
+# Model weights
+*.pt
+*.pth
+*.onnx
+
+# Windows
+Thumbs.db
+desktop.ini
