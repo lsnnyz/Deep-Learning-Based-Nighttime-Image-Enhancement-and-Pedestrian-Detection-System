@@ -1,0 +1,24 @@
+# Deep learning / object detection
+torch>=2.0
+torchvision>=0.15
+ultralytics>=8.0
+
+# Image processing and numerical computing
+opencv-python>=4.8
+numpy>=1.23
+
+# Evaluation
+# torchmetrics is used by scripts/05_eval_faster_rcnn.py
+# pycocotools is required for detection mAP evaluation
+torchmetrics>=1.2
+pycocotools>=2.0.7
+
+# Visualization
+matplotlib>=3.7
+
+# Desktop GUI
+PyQt5>=5.15
+
+# Utilities
+tqdm>=4.66
+PyYAML>=6.0
