@@ -1,59 +1,95 @@
-from ultralytics import YOLO
+import argparse
 import gc
-import torch
 import os
+
+import torch
+from ultralytics import YOLO
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Batch training for YOLOv8s-P2 cross experiments."
+    )
+    parser.add_argument(
+        "--shutdown-after-finish",
+        action="store_true",
+        help="Shut down the machine after all experiments finish. Disabled by default for safety.",
+    )
+    return parser.parse_args()
 
 
 def main():
-    # 定义你要跑的所有实验配置矩阵
-    # 格式：('你的数据集yaml名字', '保存结果的文件夹名字')
+    args = parse_args()
+
+    # 定义所有交叉实验配置
+    # 格式：('数据集 yaml', '结果保存目录名')
     experiments = [
         ('llvip_gamma.yaml', 'yolov8s_p2_gamma'),
         ('llvip_clahe.yaml', 'yolov8s_p2_clahe'),
         ('llvip_retinex.yaml', 'yolov8s_p2_retinex'),
-        ('llvip_zerodce.yaml', 'yolov8s_p2_zerodce')
+        ('llvip_zerodce.yaml', 'yolov8s_p2_zerodce'),
     ]
 
-    print("🚀 正在启动暗光行人检测 P2 架构大满贯交叉实验流水线...")
-    print(f"📋 共计 {len(experiments)} 个实验任务待执行，预计总耗时约 8 小时。")
+    print("=" * 60)
+    print("Starting YOLOv8s-P2 cross-experiment training pipeline")
+    print(f"Total experiments: {len(experiments)}")
+    print("=" * 60)
 
-    for i, (data_yaml, run_name) in enumerate(experiments):
+    for i, (data_yaml, run_name) in enumerate(experiments, start=1):
         print(f"\n{'=' * 60}")
-        print(f"🔥 [任务 {i + 1}/{len(experiments)}] 正在执行: {run_name}")
-        print(f"📁 使用数据集配置: {data_yaml}")
+        print(f"[{i}/{len(experiments)}] Running: {run_name}")
+        print(f"Dataset config: {data_yaml}")
         print(f"{'=' * 60}\n")
 
-        # 【学术严谨性极度重要】:
-        # 每次实验都必须从你写的 yolov8s-p2.yaml 重新初始化一个干净的网络
-        # 绝对不能用上一次跑完的权重接着跑，否则就不是公平对比了！
+        # 每组实验都从相同的 YOLOv8s-P2 结构和官方预训练权重开始，
+        # 避免继承上一组实验的训练结果，保证横向对比公平。
         model = YOLO('yolov8s-p2.yaml')
-        model.load('yolov8s.pt')  # 加载官方基础权重
+        model.load('yolov8s.pt')
 
-        # 启动训练 (保持求稳的配置)
         model.train(
             data=data_yaml,
             epochs=50,
-            batch=64,  # 稳妥不爆显存
+            batch=64,
             imgsz=640,
-            device=0,  # RTX 5090
+            device=0,
             project='runs/detect',
             name=run_name,
             workers=4,
-            optimizer='auto'
+            optimizer='auto',
         )
 
-        print(f"✅ 实验 {run_name} 执行完毕！权重已保存在 runs/detect/{run_name}/weights/best.pt")
+        print(
+            f"Finished {run_name}. "
+            f"Best weights: runs/detect/{run_name}/weights/best.pt"
+        )
 
-        # 【防显存泄漏清理】: 跑完一个模型后，清空一下 GPU 显存缓存，干干净净迎接下一个模型
+        # 清理显存和 Python 对象，降低连续训练多组实验时的资源占用。
         del model
         gc.collect()
-        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
-    print("\n🎉🎉🎉 所有 4 个交叉实验已全部自动执行完毕！你的核心科研工作量闭环了！")
+    print("\nAll cross experiments have finished.")
 
-    # 【省钱大法】：所有实验跑完后，向服务器发送关机指令
-    print("⏳ 正在安全关闭 AutoDL 服务器...")
-    os.system("shutdown")
+    # 安全设计：默认绝不自动关机。
+    # 只有用户明确传入 --shutdown-after-finish 时才执行关机命令。
+    if args.shutdown_after_finish:
+        print("Shutdown requested by --shutdown-after-finish.")
+        if os.name == 'nt':
+            exit_code = os.system('shutdown /s /t 0')
+        else:
+            exit_code = os.system('shutdown -h now')
+
+        if exit_code != 0:
+            print(
+                "Shutdown command failed. "
+                "Please check system permissions or shut down manually."
+            )
+    else:
+        print(
+            "Automatic shutdown is disabled. "
+            "Use --shutdown-after-finish only when you explicitly want it."
+        )
 
 
 if __name__ == '__main__':
